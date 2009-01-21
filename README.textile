@@ -1,0 +1,13 @@
+h2. Twitter2Delicious
+
+This script searches your Twitter account for links and posts them to your delicious account.
+
+h3. Usage
+
+It will prompt you for your Twitter username and delicious username and password, so just run:
+
+<pre><code>
+./twitter2delicious.rb
+</code></pre>
+
+
