@@ -32,27 +32,38 @@ class Twitter2Delicious
     @twitter_username = login_twitter
     @delicious = login_delicious
 
-    links = get_tweets_with_links
-    post_links_to_delicious(links)
+    link_and_tags = get_tweets_with_links
+    post_links_to_delicious(link_and_tags)
   end
 
   def get_tweets_with_links
     search_url = "http://search.twitter.com/search.atom?q=from%3A#{CGI.escape @twitter_username}+filter%3Alinks"
     rss_items =  SimpleRSS.parse(open(search_url)).items
-    links = rss_items.collect { |item| item.content.scan(/href=\"([^"]*)"/) }.flatten
 
-    # Try to ignore @ replies
-    links.find_all { |url| not url.match("http://twitter.com") }
+    rss_items.collect do |item, index|
+      item_links = item.content.scan(/href=\"([^"]*)"/).flatten
+
+      # Try to ignore @ replies and hash tags
+      item_links = item_links.find_all { |url| not(url.match('http://twitter.com') or url.match(/\/search\?q=#/)) }
+
+      # Look for hash tags
+      hash_tags = item.content.scan(/#(\w*)/).flatten.collect { |tag| tag.sub /\/search\?q=/, '' }.uniq
+
+      [ item_links, hash_tags ] 
+    end
   end
 
-  def post_links_to_delicious(links)
-    links.each do |link|
-      title = get_title(link)
-      if title
-        puts "Posted: #{title}"
-        @delicious.add link, title
-      else
-        puts "Error: Couldn't get a title for: #{link}"
+  def post_links_to_delicious(links_and_tags)
+    links_and_tags.each do |links, tags|
+      links.each do |link|
+        title = get_title(link)
+        if title
+          title.strip!
+          puts "Posted: #{link}"
+          @delicious.add link, title, nil, tags.join(' ')
+        else
+          puts "Error: Couldn't get a title for: #{link}"
+        end
       end
     end
   end
