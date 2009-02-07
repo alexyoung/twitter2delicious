@@ -4,6 +4,7 @@ require 'rubygems'
 require 'cgi'
 require 'open-uri'
 require 'timeout'
+require 'optparse'
 
 begin
   require 'rdelicious'
@@ -12,6 +13,22 @@ begin
 rescue Exception
   puts 'Please install the simple-rss, hpricot and rdelicious gems'
   exit
+end
+
+options = {}
+
+ARGV.clone.options do |opts|
+  script_name = File.basename($0)
+  opts.banner = "Usage: #{$0} [options]" 
+
+  opts.separator ""
+
+  opts.on("-d", "--delicious=username", String, "Your Delicious username") { |o| options['delicious'] = o }
+  opts.on("-p", "--password=password", String, "Your Delicious password") { |o| options['password'] = o }
+  opts.on("-t", "--twitter=username", String, "Your Twitter username") { |o| options['twitter'] = o }
+  opts.on("--help", "-H", "This text") { puts opts; exit 0 }
+
+  opts.parse!
 end
 
 module WebTools
@@ -28,9 +45,15 @@ module WebTools
 end
 
 class Twitter2Delicious
-  def initialize
-    @twitter_username = login_twitter
-    @delicious = login_delicious
+  def initialize(options)
+    if options.empty?
+      puts "Run with --help to see how to use command line options."
+      @twitter_username = login_twitter
+      @delicious = login_delicious
+    else
+      @twitter_username = options['twitter']
+      @delicious = login_delicious options['delicious'], options['password']
+    end
 
     link_and_tags = get_tweets_with_links
     post_links_to_delicious(link_and_tags)
@@ -56,6 +79,7 @@ class Twitter2Delicious
   def post_links_to_delicious(links_and_tags)
     links_and_tags.each do |links, tags|
       links.each do |link|
+        link = convert_tiny_url_if_required(link)
         title = get_title(link)
         if title
           title.strip!
@@ -66,6 +90,13 @@ class Twitter2Delicious
         end
       end
     end
+  end
+
+  def convert_tiny_url_if_required(link)
+    return link unless link.match 'http://tinyurl.com'
+
+    response = Net::HTTP.get_response(URI.parse(link))
+    return response['location']
   end
 
   def get_title(link)
@@ -92,8 +123,8 @@ class Twitter2Delicious
     prompt "Enter twitter username: "
   end
 
-  def login_delicious
-    username, password = login('delicious')
+  def login_delicious(username = nil, password = nil)
+    username, password = login('delicious') if username.nil? and password.nil?
     delicious = Rdelicious.new(username, password)
     if delicious.is_connected?
       puts "Connected to delicious\n"
@@ -105,4 +136,4 @@ class Twitter2Delicious
   end
 end
 
-twitter2delicious = Twitter2Delicious.new
+twitter2delicious = Twitter2Delicious.new(options)
