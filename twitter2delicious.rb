@@ -84,7 +84,11 @@ class Twitter2Delicious
         if title
           title.strip!
           puts "Posted: #{link}"
-          @delicious.add link, title, nil, tags.join(' ')
+          result = @delicious.add link, title, nil, tags.join(' ')
+
+          unless result.match /code="done"/
+            puts "Error posting: #{link} -- check your password is correct"
+          end
         else
           puts "Error: Couldn't get a title for: #{link}"
         end
