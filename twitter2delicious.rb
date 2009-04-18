@@ -88,6 +88,8 @@ class Twitter2Delicious
 
           unless result.match /code="done"/
             puts "Error posting: #{link} -- check your password is correct"
+            puts "API response:"
+            puts result
           end
         else
           puts "Error: Couldn't get a title for: #{link}"
