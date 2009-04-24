@@ -67,7 +67,9 @@ class Twitter2Delicious
       item_links = item.content.scan(/href=\"([^"]*)"/).flatten
 
       # Try to ignore @ replies and hash tags
-      item_links = item_links.find_all { |url| not(url.match('http://twitter.com') or url.match(/\/search\?q=#/)) }
+      item_links = item_links.find_all do |url|
+        not (url.match('http://twitter.com') or url.match(/\/search\?q=#/) or url.match(/\/search\?q=%23/))
+      end
 
       # Look for hash tags
       hash_tags = item.content.scan(/#(\w*)/).flatten.collect { |tag| tag.sub /\/search\?q=/, '' }.uniq
