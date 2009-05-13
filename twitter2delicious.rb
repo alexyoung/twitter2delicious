@@ -15,6 +15,26 @@ rescue Exception
   exit
 end
 
+begin
+  require 'highline/import'
+rescue LoadError
+end
+
+module UserInput
+  def ask(question, block = nil)
+    if Object.const_defined? :HighLine
+      Object.ask question, block 
+    else
+      print question
+      STDIN.gets.chomp
+    end
+  end
+
+  def self.secure_ask(question)
+    ask(question) { |q| q.echo = '*' }
+  end
+end
+
 options = {}
 
 ARGV.clone.options do |opts|
@@ -117,24 +137,18 @@ class Twitter2Delicious
     WebTools.title(link)
   end
 
-  def prompt(text)
-    print text
-    value = gets
-    value.chomp!
-  end
-
   def login(service)
     puts "Logging into: #{service}"
-    username = prompt "Enter username: "
+    username = UserInput.ask "Enter username: "
 
     print "Enter password: "
-    password = prompt "Enter password: "
+    password = UserInput.secure_ask "Enter password: "
 
     [username, password]
   end
 
   def login_twitter
-    prompt "Enter twitter username: "
+    UserInput.ask "Enter twitter username: "
   end
 
   def login_delicious(username = nil, password = nil)
